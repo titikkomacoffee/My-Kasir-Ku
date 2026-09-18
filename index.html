@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Login — KASIR PRO</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#e31e24">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="KASIR PRO">
+  <link rel="apple-touch-icon" href="./assets/icon-192.png">
+  <style>
+    * { font-family: 'Inter', sans-serif; }
+    body {
+      background: linear-gradient(135deg, #1a0505 0%, #2b0a0a 50%, #0f0f0f 100%);
+      min-height: 100vh;
+      position: relative;
+    }
+    body::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(circle at 30% 20%, rgba(227, 30, 36, 0.15), transparent 50%);
+      pointer-events: none;
+    }
+    .glass {
+      background: rgba(255,255,255,0.04);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .glow { box-shadow: 0 0 60px rgba(227, 30, 36, 0.3); }
+    .btn-gradient {
+      background: linear-gradient(135deg, #e31e24 0%, #b8171c 100%);
+      transition: all 0.3s ease;
+    }
+    .btn-gradient:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(227, 30, 36, 0.5);
+    }
+    .logo-box {
+      background: white;
+      padding: 16px;
+      border-radius: 20px;
+      display: inline-block;
+    }
+    .logo-box img {
+      width: 110px;
+      height: 110px;
+      object-fit: contain;
+      display: block;
+    }
+    .brand-name {
+      font-size: 30px;
+      font-weight: 900;
+      letter-spacing: 3px;
+      color: white;
+      margin-top: 16px;
+    }
+    .brand-name span { color: #e31e24; }
+    .brand-tagline {
+      font-size: 10px;
+      letter-spacing: 4px;
+      color: #94a3b8;
+      font-weight: 600;
+      margin-top: 6px;
+    }
+  </style>
+</head>
+<body class="flex items-center justify-center p-4">
+
+  <div class="glass glow rounded-3xl p-8 w-full max-w-md" style="position: relative; z-index: 1;">
+    <div class="text-center mb-8">
+      <div class="logo-box">
+        <img src="assets/logo.png" alt="KASIR PRO"
+          onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\'font-size:60px\'>🛒</div>'">
+      </div>
+      <h1 class="brand-name">KASIR <span>PRO</span></h1>
+      <p class="brand-tagline">APLIKASI POINT OF SALE</p>
+    </div>
+
+    <form id="formLogin" class="space-y-4">
+      <div>
+        <label class="text-slate-300 text-sm font-semibold mb-2 block">Email</label>
+        <input type="email" id="email" required
+          class="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white focus:border-red-500 focus:outline-none transition"
+          placeholder="kasir@tokopro.com">
+      </div>
+      <div>
+        <label class="text-slate-300 text-sm font-semibold mb-2 block">Password</label>
+        <input type="password" id="password" required
+          class="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white focus:border-red-500 focus:outline-none transition"
+          placeholder="••••••••">
+      </div>
+      <button type="submit" class="w-full btn-gradient text-white font-bold py-3 rounded-xl">Masuk</button>
+      <p class="text-center text-slate-400 text-sm">
+        Belum punya akun? <a href="#" id="linkDaftar" class="text-red-400 hover:underline font-semibold">Daftar</a>
+      </p>
+    </form>
+
+    <p id="pesan" class="text-center mt-4 text-sm"></p>
+    <p class="text-center text-xs text-slate-500 mt-6">© 2025 KASIR PRO — v1.0</p>
+  </div>
+
+  <script src="js/supabase.js"></script>
+  <script src="js/ui.js"></script>
+  <script>
+    document.getElementById('formLogin').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const pesan = document.getElementById('pesan');
+      pesan.textContent = 'Memproses...';
+      pesan.className = 'text-center mt-4 text-sm text-slate-400';
+
+      const { data, error } = await db.auth.signInWithPassword({ email, password });
+      if (error) {
+        pesan.textContent = '❌ ' + error.message;
+        pesan.className = 'text-center mt-4 text-sm text-red-400';
+        return;
+      }
+
+      const { data: profil } = await db.from('profiles').select('is_active').eq('id', data.user.id).single();
+      if (profil && profil.is_active === false) {
+        await db.auth.signOut();
+        pesan.textContent = '❌ Akun Anda dinonaktifkan. Hubungi admin.';
+        pesan.className = 'text-center mt-4 text-sm text-red-400';
+        return;
+      }
+
+      pesan.textContent = '✅ Login berhasil!';
+      pesan.className = 'text-center mt-4 text-sm text-green-400';
+      setTimeout(() => window.location.href = 'dashboard.html', 600);
+    });
+
+    document.getElementById('linkDaftar').addEventListener('click', async (e) => {
+      e.preventDefault();
+      const email = prompt('Email:');
+      if (!email) return;
+      const password = prompt('Password (min 6 karakter):');
+      if (!password) return;
+
+      const { error } = await db.auth.signUp({ email, password });
+      if (error) return alert('Gagal: ' + error.message);
+      alert('✅ Akun berhasil dibuat! Silakan login.');
+    });
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+      });
+    }
+  </script>
+</body>
+</html>
