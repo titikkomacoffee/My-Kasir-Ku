@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8"><title>Laporan — KasirKu</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>*{font-family:Inter,sans-serif}body{background:#0f172a;color:#fff}</style>
+</head>
+<body class="p-8">
+  <div class="max-w-6xl mx-auto">
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-3xl font-bold">📈 Laporan & Analisis</h1>
+      <a href="dashboard.html" class="px-4 py-2 bg-slate-700 rounded-lg">← Dashboard</a>
+    </div>
+
+    <div class="grid grid-cols-4 gap-4 mb-6">
+      <div class="bg-slate-800 p-5 rounded-2xl"><p class="text-slate-400 text-sm">Omzet</p><p id="omzet" class="text-2xl font-bold text-purple-400">Rp 0</p></div>
+      <div class="bg-slate-800 p-5 rounded-2xl"><p class="text-slate-400 text-sm">Transaksi</p><p id="trx" class="text-2xl font-bold text-pink-400">0</p></div>
+      <div class="bg-slate-800 p-5 rounded-2xl"><p class="text-slate-400 text-sm">Rata-rata</p><p id="avg" class="text-2xl font-bold text-cyan-400">Rp 0</p></div>
+      <div class="bg-slate-800 p-5 rounded-2xl"><p class="text-slate-400 text-sm">Profit</p><p id="profit" class="text-2xl font-bold text-green-400">Rp 0</p></div>
+    </div>
+
+    <div class="bg-slate-800 p-6 rounded-2xl mb-6">
+      <h2 class="font-bold mb-4">Grafik Tren 7 Hari</h2>
+      <canvas id="chart" height="80"></canvas>
+    </div>
+
+    <div class="grid grid-cols-2 gap-6">
+      <div class="bg-slate-800 p-6 rounded-2xl">
+        <h2 class="font-bold mb-4">🏆 Produk Terlaris</h2>
+        <div id="terlaris"></div>
+      </div>
+      <div class="bg-slate-800 p-6 rounded-2xl">
+        <h2 class="font-bold mb-4">👤 Performa Kasir</h2>
+        <div id="performaKasir"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/supabase.js"></script>
+  <script>
+    async function load() {
+      const { data: trxList } = await db.from('transactions').select('*').eq('status','selesai');
+      const trxs = trxList || [];
+      const omzet = trxs.reduce((s,t)=>s+t.total,0);
+      document.getElementById('omzet').textContent = 'Rp ' + omzet.toLocaleString('id-ID');
+      document.getElementById('trx').textContent = trxs.length;
+      document.getElementById('avg').textContent = 'Rp ' + (trxs.length?Math.round(omzet/trxs.length):0).toLocaleString('id-ID');
+
+      // Profit (perlu join manual)
+      const { data: items } = await db.from('transaction_items').select('*');
+      const { data: prods } = await db.from('products').select('id,harga_modal');
+      const modalMap = Object.fromEntries((prods||[]).map(p=>[p.id,p.harga_modal||0]));
+      const totalModal = (items||[]).reduce((s,i)=>s+((modalMap[i.product_id]||0)*i.qty),0);
+      document.getElementById('profit').textContent = 'Rp ' + (omzet - totalModal).toLocaleString('id-ID');
+
+      // Chart 7 hari
+      const days = [...Array(7)].map((_,i)=>{const d=new Date();d.setDate(d.getDate()-6+i);return d.toISOString().split('T')[0];});
+      const dataHarian = days.map(day => trxs.filter(t=>t.created_at.startsWith(day)).reduce((s,t)=>s+t.total,0));
+      new Chart(document.getElementById('chart'), {
+        type:'line',
+        data:{labels:days.map(d=>d.slice(5)),datasets:[{label:'Omzet',data:dataHarian,borderColor:'#8b5cf6',backgroundColor:'rgba(139,92,246,0.2)',tension:0.4,fill:true}]},
+        options:{plugins:{legend:{labels:{color:'#fff'}}},scales:{x:{ticks:{color:'#94a3b8'}},y:{ticks:{color:'#94a3b8'}}}}
+      });
+
+      // Terlaris
+      const agg = {};
+      (items||[]).forEach(i=>agg[i.nama_produk]=(agg[i.nama_produk]||0)+i.qty);
+      const top = Object.entries(agg).sort((a,b)=>b[1]-a[1]).slice(0,5);
+      document.getElementById('terlaris').innerHTML = top.map(([n,q],i)=>`
+        <div class="flex justify-between py-2 border-b border-slate-700">
+          <span>${i+1}. ${n}</span><span class="font-bold text-purple-400">${q} terjual</span>
+        </div>`).join('') || '<p class="text-slate-500">Belum ada data</p>';
+
+      // Performa kasir
+      const { data: profiles } = await db.from('profiles').select('id,nama');
+      const perf = (profiles||[]).map(p=>({nama:p.nama,total:trxs.filter(t=>t.kasir_id===p.id).reduce((s,t)=>s+t.total,0)}))
+        .filter(p=>p.total>0).sort((a,b)=>b.total-a.total).slice(0,5);
+      document.getElementById('performaKasir').innerHTML = perf.map(p=>`
+        <div class="flex justify-between py-2 border-b border-slate-700">
+          <span>${p.nama}</span><span class="font-bold text-green-400">Rp ${p.total.toLocaleString('id-ID')}</span>
+        </div>`).join('') || '<p class="text-slate-500">Belum ada data</p>';
+    }
+    load();
+  </script>
+</body>
+</html>
