@@ -1,6 +1,6 @@
 // GANTI dengan URL & KEY milik Anda dari Supabase Settings → API
-const SUPABASE_URL = 'https://xxxxx.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOi...';
+const SUPABASE_URL = 'https://dcvuzxuxwmcowcnaevgp.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjdnV6eHV4d21jb3djbmFldmdwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3MjcyNDIsImV4cCI6MjEwNTMwMzI0Mn0.svdPVapnSZ4fHTmO2mAt9UUmJKYxJM1Kuie9cjBg3OI';
 
 // Pakai CDN supabase (dimuat di HTML)
 const { createClient } = supabase;
