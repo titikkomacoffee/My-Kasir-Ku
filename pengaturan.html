@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pengaturan — KasirKu</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Inter', sans-serif; }
+    body { background: #0f172a; color: white; }
+    .card { background: #1e293b; border: 1px solid #334155; border-radius: 20px; }
+    .btn-primary {
+      background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+      transition: all 0.3s ease;
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(139,92,246,0.4); }
+    input, textarea {
+      background: #0f172a;
+      border: 1px solid #334155;
+      color: white;
+    }
+    input:focus, textarea:focus { border-color: #8b5cf6; outline: none; }
+  </style>
+</head>
+<body class="p-8">
+
+<div class="max-w-3xl mx-auto">
+
+  <!-- HEADER -->
+  <div class="flex justify-between items-center mb-6">
+    <div>
+      <h1 class="text-3xl font-extrabold">⚙️ Pengaturan Toko</h1>
+      <p class="text-slate-400 mt-1">Kelola info toko & pembayaran QRIS</p>
+    </div>
+    <a href="dashboard.html" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg">← Dashboard</a>
+  </div>
+
+  <!-- INFO TOKO -->
+  <div class="card p-6 mb-6">
+    <h2 class="text-xl font-bold mb-4">🏪 Info Toko</h2>
+    <div class="space-y-4">
+      <div>
+        <label class="text-sm text-slate-400">Nama Toko</label>
+        <input type="text" id="namaToko" class="w-full px-4 py-3 rounded-xl mt-1">
+      </div>
+      <div>
+        <label class="text-sm text-slate-400">Alamat</label>
+        <textarea id="alamatToko" rows="2" class="w-full px-4 py-3 rounded-xl mt-1"></textarea>
+      </div>
+      <div>
+        <label class="text-sm text-slate-400">No. HP</label>
+        <input type="text" id="noHpToko" class="w-full px-4 py-3 rounded-xl mt-1">
+      </div>
+      <button onclick="simpanInfoToko()" class="btn-primary px-6 py-3 rounded-xl font-bold">
+        💾 Simpan Info Toko
+      </button>
+    </div>
+  </div>
+
+  <!-- QRIS -->
+  <div class="card p-6">
+    <h2 class="text-xl font-bold mb-2">📱 QRIS Pembayaran</h2>
+    <p class="text-slate-400 text-sm mb-4">
+      Upload gambar QRIS statis dari bank/e-wallet Anda (BCA, Mandiri, GoPay, OVO, dll.).
+      Pelanggan akan scan QR ini untuk bayar.
+    </p>
+
+    <!-- Preview QR saat ini -->
+    <div class="bg-slate-900 rounded-xl p-6 mb-4 text-center">
+      <p class="text-slate-400 text-sm mb-3">QR Saat Ini</p>
+      <div id="qrPreview" class="inline-block">
+        <div class="w-64 h-64 bg-slate-800 rounded-xl flex items-center justify-center text-slate-500">
+          Belum ada QR
+        </div>
+      </div>
+    </div>
+
+    <!-- Upload QR baru -->
+    <div>
+      <label class="text-sm text-slate-400">Upload QR Baru</label>
+      <input type="file" id="fileQr" accept="image/*"
+        class="w-full px-4 py-3 rounded-xl mt-1 text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-purple-500 file:text-white file:font-semibold hover:file:bg-purple-600">
+      <button onclick="uploadQr()" class="btn-primary px-6 py-3 rounded-xl font-bold mt-3 w-full">
+        ⬆️ Upload QR Baru
+      </button>
+    </div>
+
+    <div class="mt-6 p-4 rounded-xl bg-cyan-500/10 border border-cyan-500/30">
+      <p class="text-sm text-cyan-300">
+        💡 <b>Tips:</b> Minta gambar QRIS ke bank Anda (format PNG/JPG).
+        Simpan sebagai gambar ukuran minimal 500x500 px agar tidak pecah saat di-scan pelanggan.
+      </p>
+    </div>
+  </div>
+
+</div>
+
+<script src="js/supabase.js"></script>
+<script src="js/auth-guard.js"></script>
+<script>
+(async () => {
+  const profil = await guard(['admin']);
+  if (!profil) return;
+
+  await loadSetting();
+})();
+
+// ============================================
+// LOAD SETTING
+// ============================================
+async function loadSetting() {
+  const { data } = await db.from('settings').select('*');
+  const map = Object.fromEntries((data || []).map(s => [s.key, s.value]));
+
+  document.getElementById('namaToko').value = map.nama_toko || '';
+  document.getElementById('alamatToko').value = map.alamat_toko || '';
+  document.getElementById('noHpToko').value = map.no_hp_toko || '';
+
+  if (map.qris_image_url) {
+    document.getElementById('qrPreview').innerHTML = `
+      <img src="${map.qris_image_url}" class="w-64 h-64 object-contain rounded-xl bg-white p-2">
+    `;
+  }
+}
+
+// ============================================
+// SIMPAN INFO TOKO
+// ============================================
+async function simpanInfoToko() {
+  const updates = [
+    { key: 'nama_toko', value: document.getElementById('namaToko').value },
+    { key: 'alamat_toko', value: document.getElementById('alamatToko').value },
+    { key: 'no_hp_toko', value: document.getElementById('noHpToko').value }
+  ];
+
+  for (const u of updates) {
+    await db.from('settings').upsert({
+      key: u.key,
+      value: u.value,
+      updated_at: new Date().toISOString()
+    });
+  }
+
+  alert('✅ Info toko berhasil disimpan');
+}
+
+// ============================================
+// UPLOAD QR
+// ============================================
+async function uploadQr() {
+  const file = document.getElementById('fileQr').files[0];
+  if (!file) return alert('Pilih file QR dulu');
+
+  if (file.size > 2 * 1024 * 1024) {
+    return alert('Ukuran file terlalu besar. Maks 2MB.');
+  }
+
+  const ext = file.name.split('.').pop();
+  const fileName = `qris-${Date.now()}.${ext}`;
+
+  const { error: upErr } = await db.storage.from('settings').upload(fileName, file);
+  if (upErr) return alert('Upload gagal: ' + upErr.message);
+
+  const { data: { publicUrl } } = db.storage.from('settings').getPublicUrl(fileName);
+
+  await db.from('settings').upsert({
+    key: 'qris_image_url',
+    value: publicUrl,
+    updated_at: new Date().toISOString()
+  });
+
+  alert('✅ QR berhasil diupload');
+  await loadSetting();
+}
+</script>
+</body>
+</html>
