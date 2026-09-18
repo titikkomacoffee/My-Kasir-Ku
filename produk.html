@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Produk — KASIR PRO</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>*{font-family:'Inter',sans-serif}body{background:#0f172a;color:white}</style>
+</head>
+<body class="p-8">
+  <div class="max-w-6xl mx-auto">
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-3xl font-bold">📦 Produk & Stok</h1>
+      <div class="flex gap-2">
+        <a href="dashboard.html" class="px-4 py-2 bg-slate-700 rounded-lg">← Dashboard</a>
+        <button onclick="tambahProduk()" class="px-4 py-2 bg-red-500 hover:bg-red-600 rounded-lg font-bold">+ Tambah Produk</button>
+      </div>
+    </div>
+
+    <div class="bg-slate-800 rounded-2xl p-6">
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div class="bg-slate-900 p-4 rounded-xl">
+          <p class="text-slate-400 text-sm">Total Jenis Produk</p>
+          <p id="totalJenis" class="text-3xl font-bold text-red-500">0</p>
+        </div>
+        <div class="bg-slate-900 p-4 rounded-xl">
+          <p class="text-slate-400 text-sm">Total Kuantitas Stok</p>
+          <p id="totalStok" class="text-3xl font-bold text-cyan-400">0</p>
+        </div>
+      </div>
+      <table class="w-full text-left">
+        <thead class="text-slate-400 text-sm border-b border-slate-700">
+          <tr><th class="py-3">Nama</th><th>SKU</th><th>Harga</th><th>Stok</th><th>Aksi</th></tr>
+        </thead>
+        <tbody id="tabelProduk"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="js/supabase.js"></script>
+  <script src="js/auth-guard.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/theme.js"></script>
+  <script>
+    (async () => {
+      const profil = await guard(['admin', 'manager']);
+      if (!profil) return;
+      await load();
+    })();
+
+    async function load() {
+      const { data } = await db.from('products').select('*').order('created_at', {ascending:false});
+      const list = data || [];
+      document.getElementById('totalJenis').textContent = list.length;
+      document.getElementById('totalStok').textContent = list.reduce((s,p)=>s+p.stok,0);
+      document.getElementById('tabelProduk').innerHTML = list.map(p => `
+        <tr class="border-b border-slate-800">
+          <td class="py-3">${p.nama}</td>
+          <td class="text-slate-400">${p.sku||'-'}</td>
+          <td>Rp ${p.harga.toLocaleString('id-ID')}</td>
+          <td class="${p.stok<5?'text-red-400 font-bold':''}">${p.stok}</td>
+          <td>
+            <button onclick="editProduk('${p.id}')" class="text-blue-400 mr-2">Edit</button>
+            <button onclick="hapusProduk('${p.id}')" class="text-red-400">Hapus</button>
+          </td>
+        </tr>`).join('') || '<tr><td colspan="5" class="text-center py-8 text-slate-500">Belum ada produk</td></tr>';
+    }
+
+    async function tambahProduk() {
+      const nama = prompt('Nama produk:');
+      if (!nama) return;
+      const sku = prompt('SKU (boleh kosong):') || null;
+      const harga = parseInt(prompt('Harga jual:')) || 0;
+      const stok = parseInt(prompt('Stok awal:')) || 0;
+      const { error } = await db.from('products').insert({ nama, sku, harga, stok });
+      if (error) return toast(error.message, 'error');
+      toast('Produk berhasil ditambahkan', 'success');
+      load();
+    }
+
+    async function hapusProduk(id) {
+      if (!await konfirmasi('Hapus produk ini?', 'Hapus Produk')) return;
+      await db.from('products').delete().eq('id', id);
+      toast('Produk dihapus', 'success');
+      load();
+    }
+
+    async function editProduk(id) {
+      const { data: p } = await db.from('products').select('*').eq('id', id).single();
+      const nama = prompt('Nama:', p.nama) || p.nama;
+      const harga = parseInt(prompt('Harga:', p.harga)) || p.harga;
+      const stokInput = prompt('Stok:', p.stok);
+      const stok = stokInput === null ? p.stok : (parseInt(stokInput) || 0);
+      await db.from('products').update({ nama, harga, stok }).eq('id', id);
+      toast('Produk diperbarui', 'success');
+      load();
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Laporan — KASIR PRO</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>*{font-family:'Inter',sans-serif}body{background:#0f172a;color:white}</style>
+</head>
+<body class="p-8">
+  <div class="max-w-6xl mx-auto">
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-3xl font-bold">📈 Laporan & Analisis</h1>
+      <div class="flex gap-2">
+        <a href="dashboard.html" class="px-4 py-2 bg-slate-700 rounded-lg">← Dashboard</a>
+        <button onclick="exportCsv()" class="px-4 py-2 bg-green-600 hover:bg-green-500 rounded-lg font-semibold">📥 Export CSV</button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div class="bg-slate-800 p-5 rounded-2xl"><p class="text-slate-400 text-sm">Omzet</p><p id="omzet" class="text-2xl font-bold text-red-500">Rp 0</p></div>
+      <div class="bg-slate-800 p-5 rounded-2xl"><p class="text-slate-400 text-sm">Transaksi</p><p id="trx" class="text-2xl font-bold text-red-400">0</p></div>
+      <div class="bg-slate-800 p-5 rounded-2xl"><p class="text-slate-400 text-sm">Rata-rata</p><p id="avg" class="text-2xl font-bold text-cyan-400">Rp 0</p></div>
+      <div class="bg-slate-800 p-5 rounded-2xl"><p class="text-slate-400 text-sm">Profit</p><p id="profit" class="text-2xl font-bold text-green-400">Rp 0</p></div>
+    </div>
+
+    <div class="bg-slate-800 p-6 rounded-2xl mb-6">
+      <h2 class="font-bold mb-4">Grafik Tren 7 Hari</h2>
+      <canvas id="chart" height="80"></canvas>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="bg-slate-800 p-6 rounded-2xl">
+        <h2 class="font-bold mb-4">🏆 Produk Terlaris</h2>
+        <div id="terlaris"></div>
+      </div>
+      <div class="bg-slate-800 p-6 rounded-2xl">
+        <h2 class="font-bold mb-4">👤 Performa Kasir</h2>
+        <div id="performaKasir"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/supabase.js"></script>
+  <script src="js/auth-guard.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/theme.js"></script>
+  <script>
+    let semuaTrx = [];
+
+    (async () => {
+      const profil = await guard(['admin', 'manager']);
+      if (!profil) return;
+      await load();
+    })();
+
+    async function load() {
+      const { data: trxList } = await db.from('transactions').select('*').eq('status','selesai');
+      semuaTrx = trxList || [];
+      const omzet = semuaTrx.reduce((s,t)=>s+t.total,0);
+      document.getElementById('omzet').textContent = 'Rp ' + omzet.toLocaleString('id-ID');
+      document.getElementById('trx').textContent = semuaTrx.length;
+      document.getElementById('avg').textContent = 'Rp ' + (semuaTrx.length?Math.round(omzet/semuaTrx.length):0).toLocaleString('id-ID');
+
+      const { data: items } = await db.from('transaction_items').select('*');
+      const { data: prods } = await db.from('products').select('id,harga_modal');
+      const modalMap = Object.fromEntries((prods||[]).map(p=>[p.id,p.harga_modal||0]));
+      const totalModal = (items||[]).reduce((s,i)=>s+((modalMap[i.product_id]||0)*i.qty),0);
+      document.getElementById('profit').textContent = 'Rp ' + (omzet - totalModal).toLocaleString('id-ID');
+
+      const days = [...Array(7)].map((_,i)=>{const d=new Date();d.setDate(d.getDate()-6+i);return d.toISOString().split('T')[0];});
+      const dataHarian = days.map(day => semuaTrx.filter(t=>t.created_at.startsWith(day)).reduce((s,t)=>s+t.total,0));
+
+      new Chart(document.getElementById('chart'), {
+        type:'line',
+        data:{labels:days.map(d=>d.slice(5)),datasets:[{label:'Omzet',data:dataHarian,borderColor:'#e31e24',backgroundColor:'rgba(227,30,36,0.2)',tension:0.4,fill:true}]},
+        options:{plugins:{legend:{labels:{color:'#fff'}}},scales:{x:{ticks:{color:'#94a3b8'}},y:{ticks:{color:'#94a3b8'}}}}
+      });
+
+      const agg = {};
+      (items||[]).forEach(i=>agg[i.nama_produk]=(agg[i.nama_produk]||0)+i.qty);
+      const top = Object.entries(agg).sort((a,b)=>b[1]-a[1]).slice(0,5);
+      document.getElementById('terlaris').innerHTML = top.map(([n,q],i)=>`
+        <div class="flex justify-between py-2 border-b border-slate-700">
+          <span>${i+1}. ${n}</span><span class="font-bold text-red-400">${q} terjual</span>
+        </div>`).join('') || '<p class="text-slate-500">Belum ada data</p>';
+
+      const { data: profiles } = await db.from('profiles').select('id,nama');
+      const perf = (profiles||[]).map(p=>({nama:p.nama,total:semuaTrx.filter(t=>t.kasir_id===p.id).reduce((s,t)=>s+t.total,0)}))
+        .filter(p=>p.total>0).sort((a,b)=>b.total-a.total).slice(0,5);
+      document.getElementById('performaKasir').innerHTML = perf.map(p=>`
+        <div class="flex justify-between py-2 border-b border-slate-700">
+          <span>${p.nama}</span><span class="font-bold text-green-400">Rp ${p.total.toLocaleString('id-ID')}</span>
+        </div>`).join('') || '<p class="text-slate-500">Belum ada data</p>';
+    }
+
+    async function exportCsv() {
+      const { data: trxs } = await db.from('transactions')
+        .select('nomor_trx, created_at, metode_bayar, subtotal, diskon, total, profiles(nama)')
+        .eq('status', 'selesai').order('created_at', { ascending: false });
+
+      if (!trxs || trxs.length === 0) return toast('Belum ada data untuk di-export', 'warning');
+
+      const header = ['No. TRX', 'Tanggal', 'Kasir', 'Metode', 'Subtotal', 'Diskon', 'Total'];
+      const rows = trxs.map(t => [
+        t.nomor_trx,
+        new Date(t.created_at).toLocaleString('id-ID'),
+        t.profiles?.nama || '-',
+        t.metode_bayar,
+        t.subtotal, t.diskon, t.total
+      ]);
+      const csvContent = [header, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+      const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `laporan-kasirpro-${new Date().toISOString().split('T')[0]}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast('Laporan berhasil di-download', 'success');
+    }
+  </script>
+</body>
+</html>
