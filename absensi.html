@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Absensi — KASIR PRO</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#14b8a6">
+  <link rel="apple-touch-icon" href="./assets/icon-192.png">
+  <style>
+    *{font-family:'Inter',sans-serif}body{background:#f0fdfa;color:#0f172a;padding-bottom:80px}
+    .menu-item{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:14px;color:#64748b;transition:all 0.2s;cursor:pointer;text-decoration:none;font-weight:600;font-size:14px}
+    .menu-item:hover{background:#f0fdfa;color:#14b8a6}
+    .menu-item.active{background:linear-gradient(135deg,#14b8a6 0%,#0d9488 100%);color:white}
+    .stat-card{background:white;border-radius:24px;box-shadow:0 4px 20px rgba(20,184,166,0.08);border:1px solid rgba(20,184,166,0.08)}
+    .header-gradient{background:linear-gradient(135deg,#14b8a6 0%,#0d9488 100%);color:white;padding:20px;border-radius:24px;box-shadow:0 10px 30px rgba(20,184,166,0.3)}
+    .sidebar-desktop{width:260px;position:fixed;top:0;left:0;bottom:0;overflow-y:auto;z-index:40;background:white}
+    .main-content{margin-left:260px;padding:32px;min-height:100vh}
+    .btn-hamburger{display:none;position:fixed;top:16px;left:16px;z-index:45;width:48px;height:48px;border-radius:14px;background:white;border:1px solid #e2e8f0;color:#14b8a6;font-size:22px;cursor:pointer;align-items:center;justify-content:center}
+    .bottom-nav{position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid #e2e8f0;display:flex;justify-content:space-around;align-items:center;padding:8px 0 max(8px,env(safe-area-inset-bottom));z-index:50}
+    .bottom-nav-item{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 12px;border-radius:12px;color:#94a3b8;font-size:10px;font-weight:600;text-decoration:none;min-width:60px}
+    .bottom-nav-item.active{color:#14b8a6}
+    .bottom-nav-item .icon{font-size:22px}
+    .fab-center{width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#14b8a6 0%,#0d9488 100%);display:flex;align-items:center;justify-content:center;color:white;font-size:28px;box-shadow:0 8px 20px rgba(20,184,166,0.4);margin-top:-24px;text-decoration:none}
+    @media (max-width:1023px){
+      .sidebar-desktop{transform:translateX(-100%)}
+      .sidebar-desktop.sidebar-open{transform:translateX(0)}
+      .main-content{margin-left:0;padding:80px 16px 20px 16px}
+      .btn-hamburger{display:flex}
+    }
+    @media (min-width:1024px){.bottom-nav{display:none}body{padding-bottom:0}}
+  </style>
+</head>
+<body class="light-mode">
+
+<button class="btn-hamburger" onclick="toggleSidebar()">☰</button>
+<div id="sidebarOverlay" class="hidden" onclick="closeSidebar()"></div>
+
+<div class="flex min-h-screen">
+  <aside id="mainSidebar" class="sidebar-desktop p-4 flex flex-col hidden lg:flex">
+    <div class="flex items-center gap-3 px-4 py-4 mb-2">
+      <div class="w-12 h-12 rounded-2xl flex items-center justify-center overflow-hidden" style="background:linear-gradient(135deg,#14b8a6 0%,#0d9488 100%)">
+        <img src="assets/logo.png" class="w-full h-full object-contain p-2" onerror="this.style.display='none';this.parentElement.innerHTML='<div style=\'font-size:24px\'>🛒</div>'">
+      </div>
+      <div>
+        <h1 class="font-extrabold text-base leading-tight">KASIR <span style="color:#14b8a6">PRO</span></h1>
+        <p class="text-xs text-slate-400">Point of Sale</p>
+      </div>
+    </div>
+    <div class="px-4 mb-4 pb-4 border-b border-slate-100">
+      <p id="sidebarNama" class="font-semibold text-sm truncate">...</p>
+      <p id="sidebarRole" class="text-xs font-bold">...</p>
+    </div>
+    <nav class="flex-1 space-y-1">
+      <a href="dashboard.html" class="menu-item">📊 <span>Dashboard</span></a>
+      <a href="kasir.html" class="menu-item">💰 <span>Kasir (POS)</span></a>
+      <a href="riwayat.html" class="menu-item">🧾 <span>Riwayat Trx</span></a>
+      <a href="produk.html" id="menu-produk" class="menu-item">📦 <span>Produk & Stok</span></a>
+      <a href="laporan.html" id="menu-laporan" class="menu-item">📈 <span>Laporan</span></a>
+      <a href="piutang.html" class="menu-item">💳 <span>Piutang</span></a>
+      <a href="shift.html" class="menu-item">⏰ <span>Shift Kasir</span></a>
+      <a href="absensi.html" class="menu-item active">📸 <span>Absensi</span></a>
+      <a href="karyawan.html" id="menu-karyawan" class="menu-item">👥 <span>Karyawan</span></a>
+      <a href="pengaturan.html" id="menu-pengaturan" class="menu-item">⚙️ <span>Pengaturan</span></a>
+    </nav>
+    <div class="pt-4 border-t border-slate-100 space-y-1">
+      <button onclick="pilihTema()" class="menu-item w-full text-left">🎨 <span>Ganti Tema</span></button>
+      <button onclick="toggleMode()" class="menu-item w-full text-left">🌓 <span>Mode</span></button>
+      <button onclick="logout()" class="menu-item w-full text-left text-red-500">🚪 <span>Logout</span></button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="header-gradient mb-6">
+      <h1 class="text-2xl font-extrabold">📸 Absensi</h1>
+      <p class="text-white/80 text-xs mt-1">Absen dengan foto & GPS</p>
+    </div>
+
+    <div class="stat-card p-4 mb-6">
+      <video id="video" autoplay playsinline class="w-full rounded-2xl bg-black" style="max-height:300px;"></video>
+      <canvas id="canvas" class="hidden"></canvas>
+      <p id="lokasi" class="mt-3 text-slate-500 text-xs">📍 Mendapatkan lokasi...</p>
+      <p id="waktu" class="text-slate-500 text-xs">🕐 -</p>
+      <div class="flex flex-col sm:flex-row gap-3 mt-4">
+        <button onclick="absen('masuk')" class="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold">✅ Absen Masuk</button>
+        <button onclick="absen('keluar')" class="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold">🚪 Absen Keluar</button>
+      </div>
+    </div>
+
+    <div class="stat-card p-4 md:p-6">
+      <h2 class="font-bold mb-4">Riwayat Hari Ini</h2>
+      <div id="riwayat"></div>
+    </div>
+  </main>
+</div>
+
+<nav class="bottom-nav">
+  <a href="dashboard.html" class="bottom-nav-item"><span class="icon">🏠</span><span>Beranda</span></a>
+  <a href="produk.html" class="bottom-nav-item"><span class="icon">📦</span><span>Produk</span></a>
+  <a href="kasir.html" class="fab-center">+</a>
+  <a href="riwayat.html" class="bottom-nav-item"><span class="icon">🧾</span><span>Riwayat</span></a>
+  <a href="pengaturan.html" class="bottom-nav-item"><span class="icon">⚙️</span><span>Lainnya</span></a>
+</nav>
+
+<script src="js/supabase.js"></script>
+<script src="js/auth-guard.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/theme.js"></script>
+<script>
+let user, video, canvas, lokasiData;
+
+(async () => {
+  const profil = await guard();
+  if (!profil) return;
+  user = profil;
+
+  setInterval(() => {
+    document.getElementById('waktu').textContent = '🕐 ' + new Date().toLocaleString('id-ID');
+  }, 1000);
+
+  video = document.getElementById('video');
+  canvas = document.getElementById('canvas');
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    video.srcObject = stream;
+  } catch (e) {
+    toast('Tidak bisa akses kamera: ' + e.message, 'error');
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      lokasiData = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      document.getElementById('lokasi').textContent = `📍 ${lokasiData.lat.toFixed(6)}, ${lokasiData.lng.toFixed(6)}`;
+    },
+    err => document.getElementById('lokasi').textContent = '❌ Gagal akses GPS: ' + err.message,
+    { enableHighAccuracy: true }
+  );
+
+  loadRiwayat();
+})();
+
+async function absen(tipe) {
+  if (!lokasiData) return toast('Lokasi belum terdeteksi', 'warning');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  canvas.toBlob(async blob => {
+    const fileName = `${user.id}_${Date.now()}.jpg`;
+    const { error: upErr } = await db.storage.from('absensi-foto').upload(fileName, blob);
+    if (upErr) return toast('Upload gagal: ' + upErr.message, 'error');
+    const { data: { publicUrl } } = db.storage.from('absensi-foto').getPublicUrl(fileName);
+    await db.from('attendance').insert({
+      user_id: user.id, foto_url: publicUrl,
+      latitude: lokasiData.lat, longitude: lokasiData.lng, tipe
+    });
+    toast(`Absen ${tipe} berhasil!`, 'success');
+    loadRiwayat();
+  }, 'image/jpeg', 0.8);
+}
+
+async function loadRiwayat() {
+  const today = new Date().toISOString().split('T')[0];
+  const { data } = await db.from('attendance').select('*').eq('user_id', user.id).gte('created_at', today + 'T00:00:00').order('created_at', { ascending: false });
+  document.getElementById('riwayat').innerHTML = (data||[]).map(a => `
+    <div class="flex items-center gap-3 py-3 border-b border-slate-100">
+      <img src="${a.foto_url}" class="w-12 h-12 rounded-xl object-cover">
+      <div class="flex-1">
+        <p class="font-semibold ${a.tipe==='masuk'?'text-green-600':'text-orange-500'}">${a.tipe.toUpperCase()}</p>
+        <p class="text-xs text-slate-500">${new Date(a.created_at).toLocaleString('id-ID')}</p>
+      </div>
+    </div>`).join('') || '<p class="text-slate-400 text-center py-6">Belum ada absensi</p>';
+}
+</script>
+</body>
+</html>

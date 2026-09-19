@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Kasir — KASIR PRO</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#14b8a6">
+  <link rel="apple-touch-icon" href="./assets/icon-192.png">
+  <style>
+    * { font-family: 'Inter', sans-serif; }
+    :root { --primary: #14b8a6; --primary-dark: #0d9488; --accent: #f97316; }
+    
+    body { background: #f0fdfa; color: #0f172a; padding-bottom: 80px; }
+    body.dark-mode { background: #0f172a; color: white; }
+
+    .kasir-header {
+      background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
+      color: white;
+      padding: 16px 20px;
+      border-radius: 24px;
+      margin-bottom: 16px;
+      box-shadow: 0 10px 30px rgba(20, 184, 166, 0.3);
+    }
+
+    .search-bar {
+      background: white;
+      border: 2px solid transparent;
+      border-radius: 16px;
+      padding: 14px 20px;
+      width: 100%;
+      font-size: 14px;
+      transition: all 0.2s;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+    }
+    .search-bar:focus { outline: none; border-color: #14b8a6; }
+
+    .produk-card {
+      background: white;
+      border-radius: 20px;
+      padding: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 1px solid transparent;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    .produk-card:hover {
+      transform: translateY(-4px);
+      border-color: #14b8a6;
+      box-shadow: 0 12px 30px rgba(20, 184, 166, 0.15);
+    }
+    .produk-card:active { transform: scale(0.97); }
+    body.dark-mode .produk-card { background: #1e293b; }
+
+    .kategori-pill {
+      padding: 8px 18px;
+      border-radius: 999px;
+      background: white;
+      color: #64748b;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+      border: 1px solid #e2e8f0;
+    }
+    .kategori-pill.active {
+      background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
+      color: white;
+      border-color: #14b8a6;
+      box-shadow: 0 4px 12px rgba(20, 184, 166, 0.3);
+    }
+
+    .keranjang-panel {
+      background: white;
+      border-radius: 24px;
+      padding: 20px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+    }
+    body.dark-mode .keranjang-panel { background: #1e293b; }
+
+    .keranjang-item {
+      background: #f0fdfa;
+      border-radius: 16px;
+      padding: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    body.dark-mode .keranjang-item { background: #0f172a; }
+
+    .qty-btn {
+      width: 32px; height: 32px;
+      border-radius: 10px;
+      background: white;
+      border: 1px solid #e2e8f0;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+      color: #14b8a6;
+    }
+    .qty-btn:hover { background: #14b8a6; color: white; border-color: #14b8a6; }
+
+    .btn-bayar {
+      background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
+      color: white;
+      font-weight: 700;
+      padding: 16px;
+      border-radius: 16px;
+      width: 100%;
+      box-shadow: 0 8px 20px rgba(20, 184, 166, 0.3);
+      transition: all 0.2s;
+      border: none;
+      cursor: pointer;
+      font-size: 15px;
+    }
+    .btn-bayar:hover { transform: translateY(-2px); }
+
+    .btn-midtrans {
+      background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+      color: white;
+      font-weight: 700;
+      padding: 16px;
+      border-radius: 16px;
+      width: 100%;
+      box-shadow: 0 8px 20px rgba(139, 92, 246, 0.3);
+      transition: all 0.2s;
+      border: none;
+      cursor: pointer;
+      font-size: 15px;
+    }
+    .btn-midtrans:hover { transform: translateY(-2px); }
+
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: white; border-top: 1px solid #e2e8f0;
+      display: flex; justify-content: space-around; align-items: center;
+      padding: 8px 0 max(8px, env(safe-area-inset-bottom));
+      z-index: 50; box-shadow: 0 -4px 20px rgba(0,0,0,0.05);
+    }
+    body.dark-mode .bottom-nav { background: #1e293b; border-color: #334155; }
+    .bottom-nav-item {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 2px; padding: 6px 12px; border-radius: 12px;
+      color: #94a3b8; font-size: 10px; font-weight: 600;
+      text-decoration: none; transition: all 0.2s; min-width: 60px;
+    }
+    .bottom-nav-item.active { color: #14b8a6; }
+    .bottom-nav-item .icon { font-size: 22px; }
+    .fab-center {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-size: 28px; font-weight: 300;
+      box-shadow: 0 8px 20px rgba(20, 184, 166, 0.4);
+      margin-top: -24px; text-decoration: none; transition: all 0.2s;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 24px;
+      padding: 24px;
+      width: 100%;
+      max-width: 480px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    body.dark-mode .modal-content { background: #1e293b; }
+
+    .metode-btn {
+      padding: 14px 8px;
+      border-radius: 14px;
+      background: #f1f5f9;
+      border: 2px solid transparent;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: #475569;
+    }
+    .metode-btn.active {
+      background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
+      color: white;
+      border-color: #14b8a6;
+      box-shadow: 0 6px 16px rgba(20, 184, 166, 0.3);
+    }
+
+    .input-field {
+      width: 100%;
+      padding: 14px 18px;
+      border-radius: 14px;
+      background: #f8fafc;
+      border: 2px solid #e2e8f0;
+      font-size: 15px;
+      font-weight: 600;
+      transition: all 0.2s;
+      color: #0f172a;
+    }
+    .input-field:focus { outline: none; border-color: #14b8a6; background: white; }
+
+    @media (max-width: 1023px) {
+      .produk-grid { max-height: 60vh; overflow-y: auto; }
+    }
+    @media (min-width: 1024px) {
+      body { padding-bottom: 0; }
+      .bottom-nav { display: none; }
+    }
+  </style>
+</head>
+<body class="light-mode">
+
+<div class="kasir-header" style="margin: 16px 16px 0 16px;">
+  <div class="flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <a href="dashboard.html" class="w-10 h-10 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center text-white">
+        ←
+      </a>
+      <div>
+        <h1 class="font-extrabold text-lg">Kasir</h1>
+        <p class="text-xs text-white/80">Pilih produk untuk mulai</p>
+      </div>
+    </div>
+    <div class="bg-white/20 backdrop-blur rounded-xl px-3 py-2 text-center">
+      <p class="text-xs text-white/80">Total</p>
+      <p class="font-bold text-sm" id="totalHeader">Rp 0</p>
+    </div>
+  </div>
+</div>
+
+<div class="flex flex-col lg:flex-row gap-4 p-4 lg:p-6">
+
+  <div class="flex-1">
+    <input type="text" id="search" placeholder="🔍 Cari produk..." class="search-bar mb-4">
+    <div id="kategoriBar" class="flex gap-2 mb-4 overflow-x-auto pb-2"></div>
+    <div id="produkList" class="produk-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3"></div>
+  </div>
+
+  <div class="keranjang-panel lg:w-96 lg:sticky lg:top-6 lg:h-fit">
+    <h2 class="font-bold text-lg mb-4">🛒 Keranjang</h2>
+    <div id="keranjangList" class="mb-4 max-h-64 lg:max-h-96 overflow-y-auto"></div>
+
+    <div class="border-t border-slate-200 pt-4 space-y-2 text-sm">
+      <div class="flex justify-between">
+        <span class="text-slate-500">Subtotal</span>
+        <span id="subtotal" class="font-semibold">Rp 0</span>
+      </div>
+      <div class="flex justify-between items-center">
+        <span class="text-slate-500">Diskon</span>
+        <input type="number" id="diskon" value="0" min="0"
+          class="w-28 px-3 py-2 rounded-xl bg-slate-100 border-2 border-transparent text-right font-semibold focus:border-teal-500 focus:outline-none">
+      </div>
+      <div class="flex justify-between font-bold text-lg pt-2 border-t border-slate-200">
+        <span>Total</span>
+        <span id="total" style="color:#14b8a6">Rp 0</span>
+      </div>
+    </div>
+
+    <button onclick="bayar()" class="btn-bayar mt-4">💳 Bayar Sekarang</button>
+  </div>
+</div>
+
+<div id="modalBayar" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end lg:items-center justify-center z-50 p-0 lg:p-4">
+  <div class="modal-content rounded-b-none lg:rounded-3xl">
+    <h3 class="text-xl font-bold mb-2">Pembayaran</h3>
+    <p class="text-slate-500 text-sm mb-1">Total</p>
+    <p id="modalTotal" class="text-3xl font-extrabold mb-6" style="color:#14b8a6">Rp 0</p>
+
+    <label class="text-sm font-semibold text-slate-600 mb-3 block">Metode Bayar</label>
+    <div class="grid grid-cols-3 gap-2 mb-4">
+      <button onclick="pilihMetode('cash')" id="mCash" class="metode-btn">💵 Cash</button>
+      <button onclick="pilihMetode('qris')" id="mQris" class="metode-btn">📱 QRIS</button>
+      <button onclick="pilihMetode('piutang')" id="mPiutang" class="metode-btn">📝 Piutang</button>
+    </div>
+
+    <div id="inputCash" class="mt-4">
+      <label class="text-sm font-semibold text-slate-600 mb-2 block">Uang Diterima</label>
+      <input type="number" id="uangBayar" class="input-field text-2xl">
+      <p class="text-sm mt-3">Kembalian: <span id="kembalian" class="font-bold text-green-600">Rp 0</span></p>
+    </div>
+
+    <div id="inputQris" class="mt-4 hidden">
+      <div id="qrisArea" class="text-center">
+        <p class="text-sm text-slate-500 mb-3">Klik tombol di bawah untuk membuat QRIS:</p>
+        <button onclick="buatQrisMidtrans()" id="btnBuatQris" class="btn-midtrans">
+          📱 Generate QRIS via Midtrans
+        </button>
+        <div id="qrisPreview" class="mt-4"></div>
+        <p id="qrisStatus" class="text-xs text-slate-500 mt-3"></p>
+      </div>
+    </div>
+
+    <div id="inputPiutang" class="mt-4 hidden">
+      <label class="text-sm font-semibold text-slate-600 mb-2 block">Nama Pelanggan</label>
+      <input type="text" id="namaPelanggan" class="input-field">
+      <label class="text-sm font-semibold text-slate-600 mt-3 mb-2 block">Jatuh Tempo</label>
+      <input type="date" id="jatuhTempo" class="input-field">
+    </div>
+
+    <div class="flex gap-2 mt-6">
+      <button onclick="tutupModalBayar()" class="flex-1 py-3.5 rounded-2xl bg-slate-100 font-bold text-slate-600">Batal</button>
+      <button onclick="konfirmasiBayar()" id="btnKonfirmasi" class="flex-1 py-3.5 rounded-2xl btn-bayar">Konfirmasi</button>
+    </div>
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <a href="dashboard.html" class="bottom-nav-item">
+    <span class="icon">🏠</span><span>Beranda</span>
+  </a>
+  <a href="produk.html" class="bottom-nav-item" id="navProduk">
+    <span class="icon">📦</span><span>Produk</span>
+  </a>
+  <a href="kasir.html" class="fab-center">+</a>
+  <a href="riwayat.html" class="bottom-nav-item">
+    <span class="icon">🧾</span><span>Riwayat</span>
+  </a>
+  <a href="pengaturan.html" class="bottom-nav-item" id="navPengaturan">
+    <span class="icon">⚙️</span><span>Lainnya</span>
+  </a>
+</nav>
+
+<script src="js/supabase.js"></script>
+<script src="js/auth-guard.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/theme.js"></script>
+<script src="js/midtrans.js"></script>
+<script>
+let keranjang = [];
+let produkAll = [];
+let kategoriAll = [];
+let kategoriAktif = 'all';
+let metodePilih = 'cash';
+let user;
+let stopPollingQris = null;
+
+(async () => {
+  showGlobalLoading('Memuat kasir...');
+  const profil = await guard();
+  if (!profil) { hideGlobalLoading(); return; }
+  user = profil;
+
+  const [shiftCek, { data: kat }, { data: prod }] = await Promise.all([
+    db.from('shifts').select('id').eq('kasir_id', profil.id).eq('status', 'open').maybeSingle().then(r => r.data),
+    db.from('categories').select('id, nama, icon'),
+    db.from('products').select('id, nama, harga, stok, foto_url, category_id').eq('is_active', true).limit(500)
+  ]);
+
+  if (!shiftCek) {
+    hideGlobalLoading();
+    await konfirmasi('Anda belum membuka shift. Silakan buka shift dulu.', 'Shift Belum Dibuka');
+    window.location.href = 'shift.html';
+    return;
+  }
+
+  kategoriAll = kat || [];
+  produkAll = prod || [];
+  renderKategori();
+  renderProduk();
+  hideGlobalLoading();
+})();
+
+function renderKategori() {
+  const bar = document.getElementById('kategoriBar');
+  bar.innerHTML = `<button onclick="setKategori('all')" class="kategori-pill ${kategoriAktif==='all'?'active':''}">Semua</button>`;
+  kategoriAll.forEach(k => {
+    bar.innerHTML += `<button onclick="setKategori('${k.id}')" class="kategori-pill ${kategoriAktif===k.id?'active':''}">${k.icon||''} ${k.nama}</button>`;
+  });
+}
+
+function setKategori(id) { kategoriAktif = id; renderKategori(); renderProduk(); }
+
+function renderProduk() {
+  const q = document.getElementById('search').value.toLowerCase();
+  const list = document.getElementById('produkList');
+  const filter = produkAll.filter(p =>
+    (kategoriAktif === 'all' || p.category_id === kategoriAktif) &&
+    p.nama.toLowerCase().includes(q)
+  );
+  list.innerHTML = filter.map(p => `
+    <div onclick="tambahItem('${p.id}')" class="produk-card">
+      <div class="text-3xl mb-2 text-center h-20 flex items-center justify-center">
+        ${p.foto_url ? `<img src="${p.foto_url}" class="w-full h-full object-cover rounded-2xl" loading="lazy">` : '📦'}
+      </div>
+      <p class="font-semibold text-sm truncate">${p.nama}</p>
+      <p class="font-bold text-sm mt-1" style="color:#14b8a6">Rp ${p.harga.toLocaleString('id-ID')}</p>
+      <p class="text-xs text-slate-400 mt-0.5">Stok: ${p.stok}</p>
+    </div>
+  `).join('') || '<p class="text-slate-400 col-span-full text-center py-8">Tidak ada produk</p>';
+}
+
+document.getElementById('search').addEventListener('input', renderProduk);
+
+function tambahItem(id) {
+  const p = produkAll.find(x => x.id === id);
+  const item = keranjang.find(x => x.product_id === id);
+  if (item) {
+    if (item.qty + 1 > p.stok) return toast('Stok tidak cukup!', 'warning');
+    item.qty++;
+    item.subtotal = item.qty * item.harga;
+  } else {
+    if (p.stok < 1) return toast('Stok habis!', 'error');
+    keranjang.push({ product_id: p.id, nama_produk: p.nama, harga: p.harga, qty: 1, subtotal: p.harga });
+  }
+  renderKeranjang();
+  toast(p.nama + ' ditambahkan', 'success', 1200);
+}
+
+function ubahQty(id, delta) {
+  const item = keranjang.find(x => x.product_id === id);
+  if (!item) return;
+  item.qty += delta;
+  if (item.qty <= 0) keranjang = keranjang.filter(x => x.product_id !== id);
+  else item.subtotal = item.qty * item.harga;
+  renderKeranjang();
+}
+
+function renderKeranjang() {
+  const list = document.getElementById('keranjangList');
+  list.innerHTML = keranjang.map(i => `
+    <div class="keranjang-item">
+      <div class="flex-1 min-w-0">
+        <p class="font-semibold text-sm truncate">${i.nama_produk}</p>
+        <p class="text-xs text-slate-500">Rp ${i.harga.toLocaleString('id-ID')} × ${i.qty}</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="ubahQty('${i.product_id}',-1)" class="qty-btn">−</button>
+        <span class="w-8 text-center font-bold">${i.qty}</span>
+        <button onclick="ubahQty('${i.product_id}',1)" class="qty-btn">+</button>
+      </div>
+    </div>
+  `).join('') || '<p class="text-slate-400 text-center py-8 text-sm">Keranjang kosong</p>';
+  hitungTotal();
+}
+
+function hitungTotal() {
+  const subtotal = keranjang.reduce((s, i) => s + i.subtotal, 0);
+  const diskon = parseInt(document.getElementById('diskon').value) || 0;
+  const total = subtotal - diskon;
+  document.getElementById('subtotal').textContent = 'Rp ' + subtotal.toLocaleString('id-ID');
+  document.getElementById('total').textContent = 'Rp ' + total.toLocaleString('id-ID');
+  document.getElementById('totalHeader').textContent = 'Rp ' + total.toLocaleString('id-ID');
+}
+
+document.getElementById('diskon').addEventListener('input', hitungTotal);
+
+function bayar() {
+  if (!keranjang.length) return toast('Keranjang kosong!', 'warning');
+  const total = keranjang.reduce((s, i) => s + i.subtotal, 0) - (parseInt(document.getElementById('diskon').value)||0);
+  document.getElementById('modalTotal').textContent = 'Rp ' + total.toLocaleString('id-ID');
+  document.getElementById('modalBayar').classList.remove('hidden');
+  document.getElementById('uangBayar').value = total;
+  hitungKembalian();
+}
+
+function tutupModalBayar() {
+  if (stopPollingQris) { stopPollingQris(); stopPollingQris = null; }
+  document.getElementById('modalBayar').classList.add('hidden');
+}
+
+async function pilihMetode(m) {
+  metodePilih = m;
+  ['cash','qris','piutang'].forEach(x => {
+    document.getElementById('m' + x.charAt(0).toUpperCase() + x.slice(1))
+      .className = 'metode-btn' + (x === m ? ' active' : '');
+  });
+  document.getElementById('inputCash').classList.toggle('hidden', m !== 'cash');
+  document.getElementById('inputPiutang').classList.toggle('hidden', m !== 'piutang');
+  document.getElementById('inputQris').classList.toggle('hidden', m !== 'qris');
+  document.getElementById('btnKonfirmasi').style.display = m === 'qris' ? 'none' : '';
+}
+
+document.getElementById('uangBayar').addEventListener('input', hitungKembalian);
+
+function hitungKembalian() {
+  const total = keranjang.reduce((s, i) => s + i.subtotal, 0) - (parseInt(document.getElementById('diskon').value)||0);
+  const bayar = parseInt(document.getElementById('uangBayar').value) || 0;
+  document.getElementById('kembalian').textContent = 'Rp ' + (bayar - total).toLocaleString('id-ID');
+}
+
+async function buatQrisMidtrans() {
+  if (!keranjang.length) return toast('Keranjang kosong!', 'warning');
+  const subtotal = keranjang.reduce((s, i) => s + i.subtotal, 0);
+  const diskon = parseInt(document.getElementById('diskon').value) || 0;
+  const total = subtotal - diskon;
+  if (total < 1000) return toast('Minimal Rp 1.000', 'warning');
+
+  const orderId = 'TRX' + Date.now();
+  const btn = document.getElementById('btnBuatQris');
+  btn.disabled = true;
+  btn.innerHTML = '⏳ Membuat QRIS...';
+
+  try {
+    const result = await midtransBuatQris(orderId, total);
+
+    const { data: trx, error: trxError } = await db.from('transactions').insert({
+      nomor_trx: orderId, kasir_id: user.id,
+      subtotal, diskon, total,
+      metode_bayar: 'qris', bayar: total, kembalian: 0,
+      status: 'pending', midtrans_status: 'pending'
+    }).select().single();
+
+    if (trxError) throw trxError;
+
+    await db.from('transaction_items').insert(
+      keranjang.map(i => ({ ...i, transaction_id: trx.id }))
+    );
+
+    document.getElementById('qrisPreview').innerHTML = `
+      <div style="background:white; padding:16px; border-radius:20px; display:inline-block; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+        <img src="${result.qrUrl}" style="width:240px; height:240px; object-fit:contain;" alt="QRIS">
+      </div>
+      <p class="text-xs text-slate-500 mt-3">Order ID: <span class="font-mono">${orderId}</span></p>
+    `;
+    document.getElementById('qrisStatus').innerHTML = `<span style="color:#f59e0b">⏳ Menunggu pembayaran...</span>`;
+    btn.innerHTML = '🔄 QRIS Aktif';
+
+    mulaiPollingQris(orderId);
+
+  } catch (err) {
+    console.error(err);
+    toast('Gagal buat QRIS: ' + err.message, 'error');
+    btn.disabled = false;
+    btn.innerHTML = '📱 Generate QRIS via Midtrans';
+  }
+}
+
+function mulaiPollingQris(orderId) {
+  stopPollingQris = midtransCekStatus(orderId,
+    async () => {
+      document.getElementById('qrisStatus').innerHTML = `<span style="color:#10b981; font-weight:700;">✅ Pembayaran Berhasil!</span>`;
+      toast('✅ Pembayaran QRIS berhasil!', 'success');
+
+      const { data: trxFull } = await db.from('transactions').select('*').eq('nomor_trx', orderId).single();
+      const itemsCopy = [...keranjang];
+
+      await Promise.all(keranjang.map(i => {
+        const p = produkAll.find(x => x.id === i.product_id);
+        p.stok -= i.qty;
+        return db.from('products').update({ stok: p.stok }).eq('id', p.id);
+      }));
+
+      keranjang = [];
+      document.getElementById('diskon').value = 0;
+      renderKeranjang();
+      renderProduk();
+
+      setTimeout(() => {
+        tutupModalBayar();
+        if (trxFull) cetakStruk(trxFull, itemsCopy);
+        resetBtnQris();
+        stopPollingQris = null;
+      }, 2000);
+    },
+    () => {
+      document.getElementById('qrisStatus').innerHTML = `<span style="color:#ef4444; font-weight:700;">❌ Pembayaran gagal/expired</span>`;
+      toast('❌ Pembayaran gagal/expired', 'error');
+      db.from('transactions').update({ status: 'batal' }).eq('nomor_trx', orderId);
+      setTimeout(() => { tutupModalBayar(); resetBtnQris(); stopPollingQris = null; }, 3000);
+    },
+    () => {
+      document.getElementById('qrisStatus').innerHTML = `<span style="color:#f97316; font-weight:700;">⏰ Waktu habis</span>`;
+      toast('⏰ Waktu pembayaran habis', 'warning');
+      db.from('transactions').update({ status: 'batal' }).eq('nomor_trx', orderId);
+      setTimeout(() => { tutupModalBayar(); resetBtnQris(); stopPollingQris = null; }, 3000);
+    }
+  );
+}
+
+function resetBtnQris() {
+  const btn = document.getElementById('btnBuatQris');
+  if (btn) {
+    btn.disabled = false;
+    btn.className = 'btn-midtrans';
+    btn.innerHTML = '📱 Generate QRIS via Midtrans';
+  }
+  document.getElementById('qrisPreview').innerHTML = '';
+  document.getElementById('qrisStatus').innerHTML = '';
+}
+
+async function konfirmasiBayar() {
+  if (metodePilih === 'qris') return;
+  const subtotal = keranjang.reduce((s, i) => s + i.subtotal, 0);
+  const diskon = parseInt(document.getElementById('diskon').value) || 0;
+  const total = subtotal - diskon;
+  const bayarVal = parseInt(document.getElementById('uangBayar').value) || 0;
+
+  if (metodePilih === 'cash' && bayarVal < total) return toast('Uang kurang!', 'error');
+  if (metodePilih === 'piutang' && !document.getElementById('namaPelanggan').value.trim()) {
+    return toast('Nama pelanggan wajib diisi!', 'warning');
+  }
+
+  showGlobalLoading('Menyimpan transaksi...');
+  const nomorTrx = 'TRX' + Date.now();
+  const { data: trx, error } = await db.from('transactions').insert({
+    nomor_trx: nomorTrx, kasir_id: user.id,
+    subtotal, diskon, total,
+    metode_bayar: metodePilih,
+    bayar: metodePilih === 'cash' ? bayarVal : total,
+    kembalian: metodePilih === 'cash' ? bayarVal - total : 0,
+    status: 'selesai'
+  }).select().single();
+
+  if (error) { hideGlobalLoading(); return toast('Error: ' + error.message, 'error'); }
+
+  await db.from('transaction_items').insert(keranjang.map(i => ({ ...i, transaction_id: trx.id })));
+  await Promise.all(keranjang.map(i => {
+    const p = produkAll.find(x => x.id === i.product_id);
+    p.stok -= i.qty;
+    return db.from('products').update({ stok: p.stok }).eq('id', p.id);
+  }));
+
+  if (metodePilih === 'piutang') {
+    await db.from('piutang').insert({
+      transaction_id: trx.id,
+      nama_pelanggan: document.getElementById('namaPelanggan').value,
+      total_utang: total, sisa: total, status: 'belum_lunas',
+      jatuh_tempo: document.getElementById('jatuhTempo').value || null
+    });
+  }
+
+  hideGlobalLoading();
+  toast('Transaksi berhasil!', 'success');
+  const itemsCopy = [...keranjang];
+  keranjang = [];
+  document.getElementById('diskon').value = 0;
+  document.getElementById('namaPelanggan').value = '';
+  document.getElementById('jatuhTempo').value = '';
+  renderKeranjang();
+  renderProduk();
+  tutupModalBayar();
+  cetakStruk(trx, itemsCopy);
+}
+
+async function cetakStruk(trx, items) {
+  const { data: setting } = await db.from('settings').select('*');
+  const map = Object.fromEntries((setting || []).map(s => [s.key, s.value]));
+  const namaToko = map.nama_toko || 'KASIR PRO';
+  const alamat = map.alamat_toko || '';
+  const noHp = map.no_hp_toko || '';
+
+  const w = window.open('', '', 'width=320,height=600');
+  w.document.write(`
+    <!DOCTYPE html><html><head><title>Struk ${trx.nomor_trx}</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: 'Courier New', monospace; font-size: 12px; width: 58mm; padding: 5mm 2mm; line-height: 1.3; }
+      .center { text-align: center; } .bold { font-weight: bold; } .big { font-size: 14px; }
+      .divider { border-top: 1px dashed #000; margin: 4px 0; }
+      .flex { display: flex; justify-content: space-between; }
+      .item-name { font-weight: bold; } .item-detail { padding-left: 8px; font-size: 11px; }
+      .total { font-size: 14px; font-weight: bold; }
+      @media print { @page { size: 58mm auto; margin: 0; } body { width: 58mm; } }
+    </style></head><body>
+      <div class="center bold big">${namaToko.toUpperCase()}</div>
+      ${alamat ? `<div class="center" style="font-size:10px">${alamat}</div>` : ''}
+      ${noHp ? `<div class="center" style="font-size:10px">Telp: ${noHp}</div>` : ''}
+      <div class="divider"></div>
+      <div class="flex"><span>No</span><span>${trx.nomor_trx}</span></div>
+      <div class="flex"><span>Tgl</span><span>${new Date().toLocaleString('id-ID', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}</span></div>
+      <div class="flex"><span>Kasir</span><span>${user.nama}</span></div>
+      <div class="divider"></div>
+      ${items.map(i => `<div class="item-name">${i.nama_produk}</div><div class="flex item-detail"><span>${i.qty} x ${i.harga.toLocaleString('id-ID')}</span><span>${i.subtotal.toLocaleString('id-ID')}</span></div>`).join('')}
+      <div class="divider"></div>
+      <div class="flex"><span>Subtotal</span><span>Rp ${trx.subtotal.toLocaleString('id-ID')}</span></div>
+      ${trx.diskon > 0 ? `<div class="flex"><span>Diskon</span><span>-Rp ${trx.diskon.toLocaleString('id-ID')}</span></div>` : ''}
+      <div class="flex total"><span>TOTAL</span><span>Rp ${trx.total.toLocaleString('id-ID')}</span></div>
+      <div class="divider"></div>
+      <div class="flex"><span>${trx.metode_bayar.toUpperCase()}</span><span>Rp ${trx.bayar.toLocaleString('id-ID')}</span></div>
+      ${trx.metode_bayar === 'cash' ? `<div class="flex"><span>Kembali</span><span>Rp ${trx.kembalian.toLocaleString('id-ID')}</span></div>` : ''}
+      <div class="divider"></div>
+      <div class="center" style="margin-top:8px">~ Terima Kasih ~<br>Selamat berbelanja kembali 🙏</div>
+    </body></html>
+  `);
+  w.document.close();
+  setTimeout(() => w.print(), 500);
+}
+</script>
+</body>
+</html>
