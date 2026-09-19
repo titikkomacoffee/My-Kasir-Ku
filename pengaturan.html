@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Pengaturan — KASIR PRO</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#e31e24">
+  <link rel="apple-touch-icon" href="./assets/icon-192.png">
+  <style>
+    *{font-family:'Inter',sans-serif}body{background:#0f172a;color:white}
+    .sidebar{background:#1e293b}
+    .menu-item{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:12px;color:#94a3b8;transition:all 0.2s;cursor:pointer;text-decoration:none}
+    .menu-item:hover,.menu-item.active{background:linear-gradient(135deg,#e31e24 0%,#b8171c 100%);color:white;transform:translateX(4px)}
+    .card{background:#1e293b;border:1px solid #334155;border-radius:20px}
+    .btn-primary{background:linear-gradient(135deg,#e31e24 0%,#b8171c 100%);transition:all 0.3s ease}
+    .btn-primary:hover{transform:translateY(-2px);box-shadow:0 10px 30px rgba(227,30,36,0.4)}
+    input,textarea{background:#0f172a;border:1px solid #334155;color:white}
+    input:focus,textarea:focus{border-color:#e31e24;outline:none}
+    .sidebar-desktop{width:256px;position:fixed;top:0;left:0;bottom:0;overflow-y:auto;transition:transform 0.3s ease;z-index:40}
+    .main-content{margin-left:256px;padding:32px;min-height:100vh;transition:margin-left 0.3s ease}
+    .btn-hamburger{display:none;position:fixed;top:16px;left:16px;z-index:45;width:48px;height:48px;border-radius:12px;background:#1e293b;border:1px solid #334155;color:white;font-size:22px;cursor:pointer;align-items:center;justify-content:center;transition:all 0.2s}
+    .btn-hamburger:hover{background:#e31e24;border-color:#e31e24}
+    #sidebarOverlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);z-index:39}
+    @media (max-width:1023px){
+      .sidebar-desktop{transform:translateX(-100%);box-shadow:10px 0 30px rgba(0,0,0,0.5)}
+      .sidebar-desktop.sidebar-open{transform:translateX(0)}
+      .main-content{margin-left:0;padding:80px 20px 20px 20px}
+      .btn-hamburger{display:flex}
+    }
+    @media (max-width:639px){
+      .main-content{padding:76px 16px 16px 16px}
+      h1.text-3xl{font-size:22px}
+      button,.menu-item{min-height:44px}
+    }
+  </style>
+</head>
+<body>
+
+<button class="btn-hamburger" onclick="toggleSidebar()">☰</button>
+<div id="sidebarOverlay" class="hidden" onclick="closeSidebar()"></div>
+
+<div class="flex min-h-screen">
+  <aside id="mainSidebar" class="sidebar-desktop sidebar p-4 flex flex-col">
+    <div class="flex items-center gap-3 px-4 py-4 mb-2">
+      <div class="w-12 h-12 rounded-xl bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
+        <img src="assets/logo.png" alt="KASIR PRO" class="w-full h-full object-contain p-1"
+          onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\'font-size:24px\'>🛒</div>'">
+      </div>
+      <div>
+        <h1 class="font-extrabold text-base leading-tight">KASIR <span class="text-red-500">PRO</span></h1>
+        <p class="text-xs text-slate-400">Point of Sale</p>
+      </div>
+    </div>
+    <div class="px-4 mb-4 pb-4 border-b border-slate-700">
+      <p id="sidebarNama" class="font-semibold text-sm truncate">...</p>
+      <p id="sidebarRole" class="text-xs font-bold">...</p>
+    </div>
+    <nav class="flex-1 space-y-1">
+      <a href="dashboard.html" class="menu-item">📊 <span>Dashboard</span></a>
+      <a href="kasir.html" class="menu-item">💰 <span>Kasir (POS)</span></a>
+      <a href="produk.html" id="menu-produk" class="menu-item">📦 <span>Produk & Stok</span></a>
+      <a href="laporan.html" id="menu-laporan" class="menu-item">📈 <span>Laporan</span></a>
+      <a href="piutang.html" class="menu-item">💳 <span>Piutang</span></a>
+      <a href="shift.html" class="menu-item">⏰ <span>Shift Kasir</span></a>
+      <a href="absensi.html" class="menu-item">📸 <span>Absensi</span></a>
+      <a href="karyawan.html" id="menu-karyawan" class="menu-item">👥 <span>Karyawan</span></a>
+      <a href="pengaturan.html" class="menu-item active">⚙️ <span>Pengaturan</span></a>
+    </nav>
+    <div class="pt-4 border-t border-slate-700 space-y-1">
+      <button onclick="pilihTema()" class="menu-item w-full text-left">🎨 <span>Ganti Tema</span></button>
+      <button onclick="toggleMode()" class="menu-item w-full text-left">🌓 <span>Mode</span></button>
+      <button onclick="logout()" class="menu-item w-full text-left text-red-400">🚪 <span>Logout</span></button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
+      <div>
+        <h1 class="text-2xl md:text-3xl font-extrabold">⚙️ Pengaturan Toko</h1>
+        <p class="text-slate-400 mt-1 text-sm">Kelola info toko & QRIS</p>
+      </div>
+      <a href="dashboard.html" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm">← Dashboard</a>
+    </div>
+
+    <div class="card p-4 md:p-6 mb-6">
+      <h2 class="text-lg md:text-xl font-bold mb-4">🏪 Info Toko</h2>
+      <div class="space-y-4">
+        <div><label class="text-sm text-slate-400">Nama Toko</label>
+          <input type="text" id="namaToko" class="w-full px-4 py-3 rounded-xl mt-1"></div>
+        <div><label class="text-sm text-slate-400">Alamat</label>
+          <textarea id="alamatToko" rows="2" class="w-full px-4 py-3 rounded-xl mt-1"></textarea></div>
+        <div><label class="text-sm text-slate-400">No. HP</label>
+          <input type="text" id="noHpToko" class="w-full px-4 py-3 rounded-xl mt-1"></div>
+        <button onclick="simpanInfoToko()" class="btn-primary w-full sm:w-auto px-6 py-3 rounded-xl font-bold">💾 Simpan Info</button>
+      </div>
+    </div>
+
+    <div class="card p-4 md:p-6">
+      <h2 class="text-lg md:text-xl font-bold mb-2">📱 QRIS Pembayaran</h2>
+      <p class="text-slate-400 text-sm mb-4">Upload gambar QRIS statis dari bank/e-wallet Anda.</p>
+
+      <div class="bg-slate-900 rounded-xl p-4 md:p-6 mb-4 text-center">
+        <p class="text-slate-400 text-sm mb-3">QR Saat Ini</p>
+        <div id="qrPreview" class="inline-block">
+          <div class="w-48 md:w-64 h-48 md:h-64 bg-slate-800 rounded-xl flex items-center justify-center text-slate-500 text-sm">Belum ada QR</div>
+        </div>
+      </div>
+
+      <div>
+        <label class="text-sm text-slate-400">Upload QR Baru</label>
+        <input type="file" id="fileQr" accept="image/*"
+          class="w-full px-4 py-3 rounded-xl mt-1 text-white text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-red-500 file:text-white file:font-semibold">
+        <button onclick="uploadQr()" class="btn-primary px-6 py-3 rounded-xl font-bold mt-3 w-full">⬆️ Upload QR Baru</button>
+      </div>
+
+      <div class="mt-6 p-4 rounded-xl bg-red-500/10 border border-red-500/30">
+        <p class="text-xs md:text-sm text-red-300">💡 <b>Tips:</b> Minta gambar QRIS ke bank Anda (PNG/JPG, min 500x500 px).</p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="js/supabase.js"></script>
+<script src="js/auth-guard.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/theme.js"></script>
+<script>
+(async () => {
+  const profil = await guard(['admin']);
+  if (!profil) return;
+  await loadSetting();
+})();
+
+async function loadSetting() {
+  const { data } = await db.from('settings').select('*');
+  const map = Object.fromEntries((data || []).map(s => [s.key, s.value]));
+  document.getElementById('namaToko').value = map.nama_toko || '';
+  document.getElementById('alamatToko').value = map.alamat_toko || '';
+  document.getElementById('noHpToko').value = map.no_hp_toko || '';
+  if (map.qris_image_url) {
+    document.getElementById('qrPreview').innerHTML = `<img src="${map.qris_image_url}" class="w-48 md:w-64 h-48 md:h-64 object-contain rounded-xl bg-white p-2">`;
+  }
+}
+
+async function simpanInfoToko() {
+  const updates = [
+    { key: 'nama_toko', value: document.getElementById('namaToko').value },
+    { key: 'alamat_toko', value: document.getElementById('alamatToko').value },
+    { key: 'no_hp_toko', value: document.getElementById('noHpToko').value }
+  ];
+  for (const u of updates) {
+    await db.from('settings').upsert({ key: u.key, value: u.value, updated_at: new Date().toISOString() });
+  }
+  toast('Info toko disimpan', 'success');
+}
+
+async function uploadQr() {
+  const file = document.getElementById('fileQr').files[0];
+  if (!file) return toast('Pilih file QR dulu', 'warning');
+  if (file.size > 2 * 1024 * 1024) return toast('Maks 2MB', 'error');
+
+  const ext = file.name.split('.').pop();
+  const fileName = `qris-${Date.now()}.${ext}`;
+  const { error: upErr } = await db.storage.from('settings').upload(fileName, file);
+  if (upErr) return toast('Upload gagal: ' + upErr.message, 'error');
+
+  const { data: { publicUrl } } = db.storage.from('settings').getPublicUrl(fileName);
+  await db.from('settings').upsert({ key: 'qris_image_url', value: publicUrl, updated_at: new Date().toISOString() });
+  toast('QR berhasil diupload', 'success');
+  await loadSetting();
+}
+</script>
+</body>
+</html>

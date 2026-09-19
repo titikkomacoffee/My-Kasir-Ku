@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Piutang — KASIR PRO</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#e31e24">
+  <link rel="apple-touch-icon" href="./assets/icon-192.png">
+  <style>
+    *{font-family:'Inter',sans-serif}body{background:#0f172a;color:white}
+    .sidebar{background:#1e293b}
+    .menu-item{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:12px;color:#94a3b8;transition:all 0.2s;cursor:pointer;text-decoration:none}
+    .menu-item:hover,.menu-item.active{background:linear-gradient(135deg,#e31e24 0%,#b8171c 100%);color:white;transform:translateX(4px)}
+    .card{background:#1e293b;border:1px solid #334155;border-radius:20px}
+    .badge{padding:4px 12px;border-radius:999px;font-size:11px;font-weight:700}
+    .badge-lunas{background:#10b98133;color:#10b981}
+    .badge-sebagian{background:#f59e0b33;color:#f59e0b}
+    .badge-belum{background:#e31e2433;color:#e31e24}
+    .btn-primary{background:linear-gradient(135deg,#e31e24 0%,#b8171c 100%);transition:all 0.3s ease}
+    .btn-primary:hover{transform:translateY(-2px);box-shadow:0 10px 30px rgba(227,30,36,0.4)}
+    .sidebar-desktop{width:256px;position:fixed;top:0;left:0;bottom:0;overflow-y:auto;transition:transform 0.3s ease;z-index:40}
+    .main-content{margin-left:256px;padding:32px;min-height:100vh;transition:margin-left 0.3s ease}
+    .btn-hamburger{display:none;position:fixed;top:16px;left:16px;z-index:45;width:48px;height:48px;border-radius:12px;background:#1e293b;border:1px solid #334155;color:white;font-size:22px;cursor:pointer;align-items:center;justify-content:center;transition:all 0.2s}
+    .btn-hamburger:hover{background:#e31e24;border-color:#e31e24}
+    #sidebarOverlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);z-index:39}
+    @media (max-width:1023px){
+      .sidebar-desktop{transform:translateX(-100%);box-shadow:10px 0 30px rgba(0,0,0,0.5)}
+      .sidebar-desktop.sidebar-open{transform:translateX(0)}
+      .main-content{margin-left:0;padding:80px 20px 20px 20px}
+      .btn-hamburger{display:flex}
+    }
+    @media (max-width:639px){
+      .main-content{padding:76px 16px 16px 16px}
+      h1.text-3xl{font-size:22px}
+      button,.menu-item{min-height:44px}
+    }
+  </style>
+</head>
+<body>
+
+<button class="btn-hamburger" onclick="toggleSidebar()">☰</button>
+<div id="sidebarOverlay" class="hidden" onclick="closeSidebar()"></div>
+
+<div class="flex min-h-screen">
+  <aside id="mainSidebar" class="sidebar-desktop sidebar p-4 flex flex-col">
+    <div class="flex items-center gap-3 px-4 py-4 mb-2">
+      <div class="w-12 h-12 rounded-xl bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
+        <img src="assets/logo.png" alt="KASIR PRO" class="w-full h-full object-contain p-1"
+          onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\'font-size:24px\'>🛒</div>'">
+      </div>
+      <div>
+        <h1 class="font-extrabold text-base leading-tight">KASIR <span class="text-red-500">PRO</span></h1>
+        <p class="text-xs text-slate-400">Point of Sale</p>
+      </div>
+    </div>
+    <div class="px-4 mb-4 pb-4 border-b border-slate-700">
+      <p id="sidebarNama" class="font-semibold text-sm truncate">...</p>
+      <p id="sidebarRole" class="text-xs font-bold">...</p>
+    </div>
+    <nav class="flex-1 space-y-1">
+      <a href="dashboard.html" class="menu-item">📊 <span>Dashboard</span></a>
+      <a href="kasir.html" class="menu-item">💰 <span>Kasir (POS)</span></a>
+      <a href="produk.html" id="menu-produk" class="menu-item">📦 <span>Produk & Stok</span></a>
+      <a href="laporan.html" id="menu-laporan" class="menu-item">📈 <span>Laporan</span></a>
+      <a href="piutang.html" class="menu-item active">💳 <span>Piutang</span></a>
+      <a href="shift.html" class="menu-item">⏰ <span>Shift Kasir</span></a>
+      <a href="absensi.html" class="menu-item">📸 <span>Absensi</span></a>
+      <a href="karyawan.html" id="menu-karyawan" class="menu-item">👥 <span>Karyawan</span></a>
+      <a href="pengaturan.html" id="menu-pengaturan" class="menu-item">⚙️ <span>Pengaturan</span></a>
+    </nav>
+    <div class="pt-4 border-t border-slate-700 space-y-1">
+      <button onclick="pilihTema()" class="menu-item w-full text-left">🎨 <span>Ganti Tema</span></button>
+      <button onclick="toggleMode()" class="menu-item w-full text-left">🌓 <span>Mode</span></button>
+      <button onclick="logout()" class="menu-item w-full text-left text-red-400">🚪 <span>Logout</span></button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
+      <div>
+        <h1 class="text-2xl md:text-3xl font-extrabold">💳 Buku Piutang</h1>
+        <p class="text-slate-400 mt-1 text-sm">Kelola utang pelanggan</p>
+      </div>
+      <a href="dashboard.html" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm">← Dashboard</a>
+    </div>
+
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
+      <div class="card p-4 md:p-5"><p class="text-slate-400 text-xs md:text-sm">Total Piutang</p><p id="statTotal" class="text-lg md:text-2xl font-bold text-red-400 mt-1">Rp 0</p></div>
+      <div class="card p-4 md:p-5"><p class="text-slate-400 text-xs md:text-sm">Belum Lunas</p><p id="statBelum" class="text-lg md:text-2xl font-bold text-red-400 mt-1">0</p></div>
+      <div class="card p-4 md:p-5"><p class="text-slate-400 text-xs md:text-sm">Sebagian</p><p id="statSebagian" class="text-lg md:text-2xl font-bold text-orange-400 mt-1">0</p></div>
+      <div class="card p-4 md:p-5"><p class="text-slate-400 text-xs md:text-sm">Lunas</p><p id="statLunas" class="text-lg md:text-2xl font-bold text-green-400 mt-1">0</p></div>
+    </div>
+
+    <div class="card p-4 md:p-5 mb-6">
+      <div class="flex flex-wrap gap-2 items-center">
+        <button onclick="setFilter('all')" id="f-all" class="px-3 md:px-4 py-2 rounded-full bg-red-500 text-xs md:text-sm font-semibold">Semua</button>
+        <button onclick="setFilter('belum_lunas')" id="f-belum" class="px-3 md:px-4 py-2 rounded-full bg-slate-700 text-xs md:text-sm font-semibold">Belum</button>
+        <button onclick="setFilter('sebagian')" id="f-sebagian" class="px-3 md:px-4 py-2 rounded-full bg-slate-700 text-xs md:text-sm font-semibold">Sebagian</button>
+        <button onclick="setFilter('lunas')" id="f-lunas" class="px-3 md:px-4 py-2 rounded-full bg-slate-700 text-xs md:text-sm font-semibold">Lunas</button>
+        <input type="text" id="search" placeholder="🔍 Cari..."
+          class="w-full sm:w-64 sm:ml-auto px-4 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:border-red-500 focus:outline-none">
+      </div>
+    </div>
+
+    <div id="listPiutang" class="space-y-3"></div>
+  </main>
+</div>
+
+<div id="modalBayar" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm flex items-end lg:items-center justify-center z-50 p-0 lg:p-4">
+  <div class="card p-6 w-full max-w-md rounded-t-2xl lg:rounded-2xl">
+    <h3 class="text-xl md:text-2xl font-bold mb-4">💰 Bayar Cicilan</h3>
+    <div class="bg-slate-900 rounded-xl p-4 mb-4">
+      <p class="text-slate-400 text-sm">Pelanggan</p>
+      <p id="mNama" class="font-bold text-lg">-</p>
+      <div class="grid grid-cols-2 gap-3 mt-3 text-sm">
+        <div><p class="text-slate-400">Total Utang</p><p id="mTotal" class="font-bold">Rp 0</p></div>
+        <div><p class="text-slate-400">Sudah Bayar</p><p id="mBayar" class="font-bold text-green-400">Rp 0</p></div>
+        <div class="col-span-2"><p class="text-slate-400">Sisa</p><p id="mSisa" class="font-bold text-red-400 text-xl">Rp 0</p></div>
+      </div>
+    </div>
+    <label class="text-sm text-slate-400">Jumlah Bayar Sekarang</label>
+    <input type="number" id="mJumlah" class="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white mt-1 text-2xl font-bold focus:border-red-500 focus:outline-none">
+    <div class="flex gap-2 mt-6">
+      <button onclick="tutupModal()" class="flex-1 py-3 rounded-xl bg-slate-700 font-semibold">Batal</button>
+      <button onclick="konfirmasiBayar()" class="flex-1 py-3 rounded-xl btn-primary font-bold">Konfirmasi</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/supabase.js"></script>
+<script src="js/auth-guard.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/theme.js"></script>
+<script>
+let semuaPiutang = [];
+let filterAktif = 'all';
+let piutangDipilih = null;
+
+(async () => {
+  const profil = await guard();
+  if (!profil) return;
+  loadPiutang();
+})();
+
+async function loadPiutang() {
+  const { data, error } = await db.from('piutang').select('*').order('created_at', { ascending: false });
+  if (error) return console.error(error);
+  semuaPiutang = data || [];
+  hitungStatistik();
+  renderList();
+}
+
+function hitungStatistik() {
+  const total = semuaPiutang.reduce((s, p) => s + (p.sisa || 0), 0);
+  document.getElementById('statTotal').textContent = 'Rp ' + total.toLocaleString('id-ID');
+  document.getElementById('statBelum').textContent = semuaPiutang.filter(p => p.status === 'belum_lunas').length;
+  document.getElementById('statSebagian').textContent = semuaPiutang.filter(p => p.status === 'sebagian').length;
+  document.getElementById('statLunas').textContent = semuaPiutang.filter(p => p.status === 'lunas').length;
+}
+
+function setFilter(status) {
+  filterAktif = status;
+  ['all','belum_lunas','sebagian','lunas'].forEach(s => {
+    const btn = document.getElementById('f-' + (s === 'belum_lunas' ? 'belum' : s));
+    if (btn) btn.className = 'px-3 md:px-4 py-2 rounded-full bg-slate-700 text-xs md:text-sm font-semibold';
+  });
+  const btnAktif = document.getElementById('f-' + (status === 'belum_lunas' ? 'belum' : status));
+  if (btnAktif) btnAktif.className = 'px-3 md:px-4 py-2 rounded-full bg-red-500 text-xs md:text-sm font-semibold';
+  renderList();
+}
+
+document.getElementById('search').addEventListener('input', renderList);
+
+function renderList() {
+  const q = document.getElementById('search').value.toLowerCase();
+  const filter = semuaPiutang.filter(p => {
+    const cocokStatus = filterAktif === 'all' || p.status === filterAktif;
+    const cocokNama = (p.nama_pelanggan || '').toLowerCase().includes(q);
+    return cocokStatus && cocokNama;
+  });
+
+  const container = document.getElementById('listPiutang');
+  if (filter.length === 0) {
+    container.innerHTML = '<div class="card p-8 text-center text-slate-500">Tidak ada data piutang</div>';
+    return;
+  }
+
+  container.innerHTML = filter.map(p => {
+    const badgeClass = p.status === 'lunas' ? 'badge-lunas' : p.status === 'sebagian' ? 'badge-sebagian' : 'badge-belum';
+    const badgeText = p.status === 'lunas' ? '✅ LUNAS' : p.status === 'sebagian' ? '🟡 SEBAGIAN' : '🔴 BELUM';
+
+    let tempoInfo = '';
+    if (p.jatuh_tempo) {
+      const jatuh = new Date(p.jatuh_tempo);
+      const selisihHari = Math.ceil((jatuh - new Date()) / 86400000);
+      if (selisihHari < 0 && p.status !== 'lunas') tempoInfo = `<span class="text-red-400 text-xs">⚠️ Terlambat ${Math.abs(selisihHari)} hari</span>`;
+      else if (p.status !== 'lunas') tempoInfo = `<span class="text-slate-400 text-xs">📅 ${p.jatuh_tempo} (${selisihHari} hari lagi)</span>`;
+    }
+
+    return `
+      <div class="card p-4 md:p-5 hover:border-red-500 transition">
+        <div class="flex flex-col sm:flex-row sm:justify-between gap-3">
+          <div class="flex-1">
+            <div class="flex items-center gap-2 mb-1 flex-wrap">
+              <h3 class="font-bold text-base md:text-lg">${p.nama_pelanggan}</h3>
+              <span class="badge ${badgeClass}">${badgeText}</span>
+            </div>
+            ${p.no_hp ? `<p class="text-slate-400 text-xs md:text-sm">📞 ${p.no_hp}</p>` : ''}
+            ${tempoInfo ? `<p class="mt-1">${tempoInfo}</p>` : ''}
+          </div>
+          <div class="sm:text-right">
+            <p class="text-slate-400 text-xs">Sisa Utang</p>
+            <p class="text-xl md:text-2xl font-extrabold ${p.sisa > 0 ? 'text-red-400' : 'text-green-400'}">Rp ${(p.sisa || 0).toLocaleString('id-ID')}</p>
+          </div>
+        </div>
+        <div class="mt-4 pt-4 border-t border-slate-700 flex flex-col sm:flex-row sm:justify-between gap-3 sm:items-center text-xs md:text-sm">
+          <div class="text-slate-400">
+            <span>Total: Rp ${(p.total_utang || 0).toLocaleString('id-ID')}</span>
+            <span class="mx-2">•</span>
+            <span>Bayar: <span class="text-green-400 font-semibold">Rp ${(p.total_bayar || 0).toLocaleString('id-ID')}</span></span>
+          </div>
+          ${p.status !== 'lunas' ? `<button onclick="bukaModalBayar('${p.id}')" class="w-full sm:w-auto px-5 py-2 rounded-xl btn-primary font-bold text-xs md:text-sm">💰 Bayar Cicilan</button>` : '<span class="text-green-400 text-xs md:text-sm font-semibold text-center sm:text-right">✓ Lunas</span>'}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function bukaModalBayar(id) {
+  piutangDipilih = semuaPiutang.find(p => p.id === id);
+  if (!piutangDipilih) return;
+  document.getElementById('mNama').textContent = piutangDipilih.nama_pelanggan;
+  document.getElementById('mTotal').textContent = 'Rp ' + piutangDipilih.total_utang.toLocaleString('id-ID');
+  document.getElementById('mBayar').textContent = 'Rp ' + (piutangDipilih.total_bayar || 0).toLocaleString('id-ID');
+  document.getElementById('mSisa').textContent = 'Rp ' + (piutangDipilih.sisa || 0).toLocaleString('id-ID');
+  document.getElementById('mJumlah').value = piutangDipilih.sisa || 0;
+  document.getElementById('modalBayar').classList.remove('hidden');
+}
+
+function tutupModal() {
+  document.getElementById('modalBayar').classList.add('hidden');
+  piutangDipilih = null;
+}
+
+async function konfirmasiBayar() {
+  if (!piutangDipilih) return;
+  const jumlahBayar = parseInt(document.getElementById('mJumlah').value) || 0;
+  if (jumlahBayar <= 0) return toast('Jumlah bayar harus > 0', 'warning');
+  if (jumlahBayar > piutangDipilih.sisa) return toast('Melebihi sisa utang!', 'error');
+
+  const totalBayarBaru = (piutangDipilih.total_bayar || 0) + jumlahBayar;
+  const sisaBaru = piutangDipilih.total_utang - totalBayarBaru;
+  let statusBaru = sisaBaru <= 0 ? 'lunas' : totalBayarBaru > 0 ? 'sebagian' : 'belum_lunas';
+
+  const { error } = await db.from('piutang').update({ total_bayar: totalBayarBaru, sisa: sisaBaru, status: statusBaru }).eq('id', piutangDipilih.id);
+  if (error) return toast('Gagal: ' + error.message, 'error');
+
+  toast(`Pembayaran Rp ${jumlahBayar.toLocaleString('id-ID')} berhasil!`, 'success');
+  tutupModal();
+  loadPiutang();
+}
+</script>
+</body>
+</html>
