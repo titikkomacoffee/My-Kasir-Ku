@@ -346,7 +346,7 @@ let stopPollingQris = null;
   user = profil;
 
   const [shiftCek, { data: kat }, { data: prod }] = await Promise.all([
-    db.from('shifts').select('id').eq('kasir_id', profil.id).eq('status', 'open').maybeSingle().then(r => r.data),
+    db.from('shifts').select('id').eq('kasir_id', staff.id).eq('status', 'open').maybeSingle().then(r => r.data),
     db.from('categories').select('id, nama, icon'),
     db.from('products').select('id, nama, harga, stok, foto_url, category_id').eq('is_active', true).limit(500)
   ]);
